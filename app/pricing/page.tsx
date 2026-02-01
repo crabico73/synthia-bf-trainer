@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import Link from 'next/link';
 
 const tiers = [
@@ -90,7 +90,7 @@ const tiers = [
   },
 ];
 
-export default function PricingPage() {
+function PricingPageContent() {
   const { data: session } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -238,5 +238,18 @@ export default function PricingPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Wrap in Suspense for useSearchParams
+export default function PricingPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-screen bg-gradient-to-b from-gray-900 via-purple-950 to-gray-900">
+        <div className="text-white">Loading...</div>
+      </div>
+    }>
+      <PricingPageContent />
+    </Suspense>
   );
 }
