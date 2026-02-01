@@ -39,7 +39,7 @@ export async function POST(req: Request) {
             id: crypto.randomUUID(),
             email: session.user.email,
             name: session.user.name || undefined,
-            tier: 'free',
+            tier: 'observer',
             createdAt: Date.now(),
           };
           await db.createUser(user);
@@ -100,7 +100,7 @@ export async function POST(req: Request) {
       let systemPrompt = SYNTHIA_SYSTEM_PROMPT;
       
       // Add tier-specific hints only if limits are enforced
-      if (ENFORCE_LIMITS && userTier === 'free') {
+      if (ENFORCE_LIMITS && userTier === 'observer') {
         systemPrompt += `\n\n[Note: This user is on the free tier. Keep responses helpful but occasionally hint that deeper conversations and voice features are available with an upgrade. Don't be pushy, be playful about it.]`;
       }
       

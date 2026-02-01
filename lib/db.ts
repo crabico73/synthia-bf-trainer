@@ -90,7 +90,7 @@ export async function setSubscription(
 
 export async function cancelSubscription(userId: string): Promise<void> {
   await updateUser(userId, {
-    tier: 'free',
+    tier: 'observer',
     stripeSubscriptionId: undefined,
     subscriptionEndsAt: undefined,
   });
@@ -100,7 +100,7 @@ export async function cancelSubscription(userId: string): Promise<void> {
 export async function isSubscriptionActive(userId: string): Promise<boolean> {
   const user = await getUser(userId);
   if (!user) return false;
-  if (user.tier === 'free') return true; // Free is always "active"
+  if (user.tier === 'observer') return true; // Observer (free) is always "active"
   if (!user.subscriptionEndsAt) return false;
   return user.subscriptionEndsAt > Date.now();
 }

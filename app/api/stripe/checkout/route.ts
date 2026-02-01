@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     const { tier } = await request.json() as { tier: SubscriptionTier };
     
     // Validate tier
-    if (!tier || !TIERS[tier] || tier === 'free') {
+    if (!tier || !TIERS[tier] || tier === 'observer') {
       return NextResponse.json({ error: 'Invalid tier' }, { status: 400 });
     }
 
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
         id: crypto.randomUUID(),
         email: session.user.email,
         name: session.user.name || undefined,
-        tier: 'free',
+        tier: 'observer',
         createdAt: Date.now(),
       };
       await createUser(user);

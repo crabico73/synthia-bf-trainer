@@ -135,7 +135,7 @@ export default function SynthiaChat() {
 
   const playAudio = async (text: string) => {
     // Check if voice is available for this tier
-    if (usage && usage.tier === 'free') {
+    if (usage && usage.tier === 'observer') {
       setMessages((prev) => [
         ...prev,
         { 
@@ -187,7 +187,7 @@ export default function SynthiaChat() {
       <UpgradeModal
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
-        currentTier={usage?.tier || 'free'}
+        currentTier={usage?.tier || 'observer'}
         messagesUsed={usage?.messagesUsed || 0}
       />
 
@@ -223,7 +223,7 @@ export default function SynthiaChat() {
             href="/pricing"
             className="text-purple-400 hover:text-purple-300 text-sm px-3 py-1 border border-purple-700 rounded-lg hover:border-purple-500 transition-all"
           >
-            {usage?.tier === 'free' ? 'Upgrade' : 'Plans'}
+            {usage?.tier === 'observer' ? 'Upgrade' : 'Plans'}
           </Link>
         </div>
       </header>
