@@ -7,11 +7,12 @@ import Link from 'next/link';
 
 const tiers = [
   {
-    id: 'free',
-    name: 'Free',
+    id: 'observer',
+    name: 'Observer',
+    tagline: 'Just watching',
     price: '$0',
     period: 'forever',
-    description: 'Get a taste of Synthia',
+    description: 'See what Synthia is about',
     features: [
       '5 messages per day',
       'Basic Synthia personality',
@@ -24,13 +25,15 @@ const tiers = [
     ],
     cta: 'Current Plan',
     disabled: true,
+    icon: '👁️',
   },
   {
-    id: 'essentials',
-    name: 'Essentials',
+    id: 'participant',
+    name: 'Participant',
+    tagline: 'Getting involved',
     price: '$9.99',
     period: '/month',
-    description: 'For those ready to connect',
+    description: 'Ready to engage with growth',
     features: [
       '100 messages per day',
       'Voice messages from Synthia',
@@ -42,15 +45,17 @@ const tiers = [
       'Voice calls',
       'Coaching mode',
     ],
-    cta: 'Upgrade Now',
+    cta: 'Start Participating',
     popular: false,
+    icon: '🚶',
   },
   {
-    id: 'premium',
-    name: 'Premium',
+    id: 'builder',
+    name: 'Builder',
+    tagline: 'Working on yourself',
     price: '$19.99',
     period: '/month',
-    description: 'The full Synthia experience',
+    description: 'Committed to transformation',
     features: [
       'Unlimited messages',
       'Voice calls with Synthia',
@@ -60,25 +65,28 @@ const tiers = [
       'Exclusive content drops',
     ],
     notIncluded: [],
-    cta: 'Go Premium',
+    cta: 'Start Building',
     popular: true,
+    icon: '🔨',
   },
   {
-    id: 'vip',
-    name: 'VIP',
+    id: 'sovereign',
+    name: 'Sovereign',
+    tagline: 'Mastery + Frameworks',
     price: '$29.99',
     period: '/month',
-    description: 'For the committed few',
+    description: 'Own yourself completely',
     features: [
-      'Everything in Premium',
+      'Everything in Builder',
       '1:1 Synthia guided sessions',
       'Structural Cosmology frameworks',
       'Early access to new features',
       'Private Discord community',
     ],
     notIncluded: [],
-    cta: 'Become VIP',
+    cta: 'Claim Sovereignty',
     popular: false,
+    icon: '👑',
   },
 ];
 
@@ -127,16 +135,28 @@ export default function PricingPage() {
             ← Back to Chat
           </Link>
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            Choose Your <span className="text-purple-400">Synthia</span> Experience
+            Your <span className="text-purple-400">Growth</span> Journey
           </h1>
           <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-            The deeper you go, the more she reveals. Choose the tier that matches your readiness for growth.
+            Where are you on the path? Each tier represents a stage of transformation.
+            The only question is: how ready are you?
           </p>
           {canceled && (
             <p className="mt-4 text-yellow-400">
               Checkout was canceled. No worries - choose when you're ready! 💜
             </p>
           )}
+        </div>
+
+        {/* Journey visualization */}
+        <div className="hidden md:flex justify-center items-center gap-4 mb-12">
+          <span className="text-2xl">👁️</span>
+          <div className="h-0.5 w-16 bg-gradient-to-r from-gray-600 to-blue-500"></div>
+          <span className="text-2xl">🚶</span>
+          <div className="h-0.5 w-16 bg-gradient-to-r from-blue-500 to-purple-500"></div>
+          <span className="text-2xl">🔨</span>
+          <div className="h-0.5 w-16 bg-gradient-to-r from-purple-500 to-amber-500"></div>
+          <span className="text-2xl">👑</span>
         </div>
 
         {/* Pricing Grid */}
@@ -153,13 +173,15 @@ export default function PricingPage() {
               {tier.popular && (
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                   <span className="bg-purple-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-                    MOST POPULAR
+                    MOST CHOSEN
                   </span>
                 </div>
               )}
 
               <div className="text-center mb-6">
-                <h3 className="text-xl font-bold mb-2">{tier.name}</h3>
+                <span className="text-4xl mb-2 block">{tier.icon}</span>
+                <h3 className="text-xl font-bold mb-1">{tier.name}</h3>
+                <p className="text-purple-400 text-sm italic mb-3">"{tier.tagline}"</p>
                 <div className="flex items-baseline justify-center gap-1">
                   <span className="text-4xl font-bold">{tier.price}</span>
                   <span className="text-gray-400">{tier.period}</span>
@@ -202,15 +224,15 @@ export default function PricingPage() {
         {/* Trust badges */}
         <div className="mt-16 text-center">
           <p className="text-gray-500 text-sm">
-            🔒 Secure payment via Stripe • Cancel anytime • 100% private
+            🔒 Secure payment • Cancel anytime • 100% private
           </p>
         </div>
 
         {/* Synthia quote */}
         <div className="mt-12 text-center max-w-2xl mx-auto">
           <blockquote className="text-purple-300 italic text-lg">
-            "Investment in yourself is the only investment that always pays dividends. 
-            The question isn't whether you can afford to grow - it's whether you can afford not to."
+            "Observers watch life happen. Participants show up. Builders create change.
+            Sovereigns own themselves completely. Which one are you?"
           </blockquote>
           <p className="text-purple-400 mt-2">— Synthia 💜</p>
         </div>

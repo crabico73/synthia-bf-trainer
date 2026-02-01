@@ -1,9 +1,11 @@
 // Synthia Subscription Tiers & Limits
+// Themed for Renaissance/Growth journey
 
-export type SubscriptionTier = 'free' | 'essentials' | 'premium' | 'vip';
+export type SubscriptionTier = 'observer' | 'participant' | 'builder' | 'sovereign';
 
 export interface TierConfig {
   name: string;
+  tagline: string;
   price: number; // monthly in cents
   priceId?: string; // Stripe price ID (set in env)
   features: string[];
@@ -19,8 +21,9 @@ export interface TierConfig {
 }
 
 export const TIERS: Record<SubscriptionTier, TierConfig> = {
-  free: {
-    name: 'Free',
+  observer: {
+    name: 'Observer',
+    tagline: 'Just watching',
     price: 0,
     features: [
       '5 messages per day',
@@ -37,10 +40,11 @@ export const TIERS: Record<SubscriptionTier, TierConfig> = {
       communityAccess: false,
     },
   },
-  essentials: {
-    name: 'Essentials',
+  participant: {
+    name: 'Participant',
+    tagline: 'Getting involved',
     price: 999, // $9.99
-    priceId: process.env.STRIPE_ESSENTIALS_PRICE_ID,
+    priceId: process.env.STRIPE_PARTICIPANT_PRICE_ID,
     features: [
       '100 messages per day',
       'Voice messages from Synthia',
@@ -58,10 +62,11 @@ export const TIERS: Record<SubscriptionTier, TierConfig> = {
       communityAccess: false,
     },
   },
-  premium: {
-    name: 'Premium',
+  builder: {
+    name: 'Builder',
+    tagline: 'Working on yourself',
     price: 1999, // $19.99
-    priceId: process.env.STRIPE_PREMIUM_PRICE_ID,
+    priceId: process.env.STRIPE_BUILDER_PRICE_ID,
     features: [
       'Unlimited messages',
       'Voice calls with Synthia',
@@ -80,12 +85,13 @@ export const TIERS: Record<SubscriptionTier, TierConfig> = {
       communityAccess: false,
     },
   },
-  vip: {
-    name: 'VIP',
+  sovereign: {
+    name: 'Sovereign',
+    tagline: 'Mastery + Frameworks',
     price: 2999, // $29.99
-    priceId: process.env.STRIPE_VIP_PRICE_ID,
+    priceId: process.env.STRIPE_SOVEREIGN_PRICE_ID,
     features: [
-      'Everything in Premium',
+      'Everything in Builder',
       '1:1 Synthia guided sessions',
       'Structural Cosmology frameworks',
       'Early access to new features',

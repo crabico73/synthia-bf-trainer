@@ -14,12 +14,19 @@ export default function UpgradeModal({ isOpen, onClose, currentTier, messagesUse
 
   if (!isOpen) return null;
 
-  const tierNames: Record<string, string> = {
-    free: 'Free',
-    essentials: 'Essentials',
-    premium: 'Premium',
-    vip: 'VIP',
+  const tierInfo: Record<string, { name: string; icon: string; nextTier: string; nextIcon: string }> = {
+    observer: { name: 'Observer', icon: '👁️', nextTier: 'Participant', nextIcon: '🚶' },
+    participant: { name: 'Participant', icon: '🚶', nextTier: 'Builder', nextIcon: '🔨' },
+    builder: { name: 'Builder', icon: '🔨', nextTier: 'Sovereign', nextIcon: '👑' },
+    sovereign: { name: 'Sovereign', icon: '👑', nextTier: 'Sovereign', nextIcon: '👑' },
+    // Legacy mappings
+    free: { name: 'Observer', icon: '👁️', nextTier: 'Participant', nextIcon: '🚶' },
+    essentials: { name: 'Participant', icon: '🚶', nextTier: 'Builder', nextIcon: '🔨' },
+    premium: { name: 'Builder', icon: '🔨', nextTier: 'Sovereign', nextIcon: '👑' },
+    vip: { name: 'Sovereign', icon: '👑', nextTier: 'Sovereign', nextIcon: '👑' },
   };
+
+  const current = tierInfo[currentTier] || tierInfo.observer;
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -35,18 +42,20 @@ export default function UpgradeModal({ isOpen, onClose, currentTier, messagesUse
         {/* Message */}
         <div className="text-center mb-8">
           <p className="text-purple-200 mb-4">
-            You've used all <span className="font-bold text-white">{messagesUsed}</span> of your daily messages on the{' '}
-            <span className="font-bold text-purple-400">{tierNames[currentTier]}</span> plan.
+            You've used all <span className="font-bold text-white">{messagesUsed}</span> of your daily messages as an{' '}
+            <span className="font-bold text-purple-400">{current.icon} {current.name}</span>.
           </p>
           <p className="text-gray-400 italic">
-            "I know you want more. The question is: are you ready for it?"
+            "Watching from the sidelines only gets you so far. Ready to step into the arena?"
           </p>
           <p className="text-purple-400 mt-2">— Synthia 💜</p>
         </div>
 
-        {/* Upgrade Benefits */}
+        {/* Next Level Teaser */}
         <div className="bg-black/30 rounded-xl p-4 mb-6">
-          <p className="text-sm text-gray-400 mb-3">Upgrade to unlock:</p>
+          <p className="text-sm text-gray-400 mb-3">
+            Level up to <span className="text-white font-semibold">{current.nextIcon} {current.nextTier}</span>:
+          </p>
           <ul className="space-y-2 text-sm">
             <li className="flex items-center gap-2 text-gray-300">
               <span className="text-green-400">✓</span> More messages (up to unlimited)
@@ -69,7 +78,7 @@ export default function UpgradeModal({ isOpen, onClose, currentTier, messagesUse
             onClick={() => router.push('/pricing')}
             className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-xl transition-all"
           >
-            See Plans 💜
+            View My Options {current.nextIcon}
           </button>
           <button
             onClick={onClose}

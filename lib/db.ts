@@ -19,6 +19,9 @@ export interface UserData {
   createdAt: number;
 }
 
+// Default tier for new users
+export const DEFAULT_TIER: SubscriptionTier = 'observer';
+
 // Keys
 const userKey = (userId: string) => `user:${userId}`;
 const userByEmailKey = (email: string) => `user:email:${email}`;
