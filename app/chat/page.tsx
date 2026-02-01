@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { generateSynthiaAudio } from "@/lib/elevenlabs";
@@ -18,7 +18,8 @@ type UsageInfo = {
   tier: string;
 };
 
-export default function SynthiaChat() {
+// Separate component that uses useSearchParams
+function SynthiaChatContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -311,5 +312,18 @@ export default function SynthiaChat() {
         </p>
       </div>
     </div>
+  );
+}
+
+// Wrap in Suspense for useSearchParams
+export default function SynthiaChat() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-screen bg-gradient-to-b from-gray-900 via-purple-950 to-gray-900">
+        <div className="text-white">Loading...</div>
+      </div>
+    }>
+      <SynthiaChatContent />
+    </Suspense>
   );
 }
