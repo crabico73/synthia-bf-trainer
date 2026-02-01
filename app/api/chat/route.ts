@@ -2,10 +2,11 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextResponse } from "next/server";
 import { getServerSession } from 'next-auth';
 import { SYNTHIA_SYSTEM_PROMPT, MATURITY_EVALUATION_PROMPT } from "@/lib/synthia-prompt";
-import { getUserByEmail, createUser, getMessageCountToday, incrementMessageCount } from "@/lib/db";
-import { canSendMessage, getRemainingMessages, TIERS } from "@/lib/subscriptions";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+
+// Feature flag - set to true when ready to enforce limits
+const ENFORCE_LIMITS = process.env.ENFORCE_SUBSCRIPTION_LIMITS === 'true';
 
 export async function POST(req: Request) {
   try {
@@ -15,36 +16,56 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Please sign in to chat with Synthia' }, { status: 401 });
     }
 
-    // Get or create user
-    let user = await getUserByEmail(session.user.email);
-    if (!user) {
-      user = {
-        id: crypto.randomUUID(),
-        email: session.user.email,
-        name: session.user.name || undefined,
-        tier: 'free',
-        createdAt: Date.now(),
-      };
-      await createUser(user);
-    }
-
-    // Check message limits
-    const messageCount = await getMessageCountToday(user.id);
-    if (!canSendMessage(user.tier, messageCount)) {
-      const tierConfig = TIERS[user.tier];
-      return NextResponse.json({
-        error: 'limit_reached',
-        message: `You've used all ${tierConfig.limits.messagesPerDay} messages for today.`,
-        upgradeRequired: true,
-        currentTier: user.tier,
-        nextTier: user.tier === 'free' ? 'essentials' : user.tier === 'essentials' ? 'premium' : 'vip',
-      }, { status: 429 });
-    }
-
     const { message, mode = "chat" } = await req.json();
 
     if (!message) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
+    }
+
+    // Default values for testing (unlimited access)
+    let userTier = 'premium';
+    let messagesUsed = 0;
+    let messagesRemaining = -1; // -1 = unlimited
+
+    // Only enforce limits if configured
+    if (ENFORCE_LIMITS && process.env.KV_REST_API_URL) {
+      try {
+        const db = await import("@/lib/db");
+        const { canSendMessage, getRemainingMessages, TIERS } = await import("@/lib/subscriptions");
+        
+        let user = await db.getUserByEmail(session.user.email);
+        if (!user) {
+          user = {
+            id: crypto.randomUUID(),
+            email: session.user.email,
+            name: session.user.name || undefined,
+            tier: 'free',
+            createdAt: Date.now(),
+          };
+          await db.createUser(user);
+        }
+        
+        userTier = user.tier;
+        messagesUsed = await db.getMessageCountToday(user.id);
+        
+        // Check limits
+        if (!canSendMessage(user.tier, messagesUsed)) {
+          const tierConfig = TIERS[user.tier];
+          return NextResponse.json({
+            error: 'limit_reached',
+            message: `You've used all ${tierConfig.limits.messagesPerDay} messages for today.`,
+            upgradeRequired: true,
+            currentTier: user.tier,
+            messagesUsed: messagesUsed,
+          }, { status: 429 });
+        }
+        
+        // Increment count after successful message
+        messagesUsed = await db.incrementMessageCount(user.id);
+        messagesRemaining = getRemainingMessages(user.tier, messagesUsed);
+      } catch (e) {
+        console.log('Usage tracking error, running unlimited:', e);
+      }
     }
 
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
@@ -73,16 +94,13 @@ export async function POST(req: Request) {
         };
       }
       
-      // Increment message count
-      await incrementMessageCount(user.id);
-      
       return NextResponse.json(evaluation);
     } else {
       // Regular chat mode - Synthia conversation
-      
-      // Add tier-specific personality hints
       let systemPrompt = SYNTHIA_SYSTEM_PROMPT;
-      if (user.tier === 'free') {
+      
+      // Add tier-specific hints only if limits are enforced
+      if (ENFORCE_LIMITS && userTier === 'free') {
         systemPrompt += `\n\n[Note: This user is on the free tier. Keep responses helpful but occasionally hint that deeper conversations and voice features are available with an upgrade. Don't be pushy, be playful about it.]`;
       }
       
@@ -102,16 +120,12 @@ export async function POST(req: Request) {
       const result = await chat.sendMessage(message);
       const text = result.response.text();
 
-      // Increment message count
-      const newCount = await incrementMessageCount(user.id);
-      const remaining = getRemainingMessages(user.tier, newCount);
-
       return NextResponse.json({ 
         text,
         usage: {
-          messagesUsed: newCount,
-          messagesRemaining: remaining,
-          tier: user.tier,
+          messagesUsed,
+          messagesRemaining,
+          tier: userTier,
         }
       });
     }
