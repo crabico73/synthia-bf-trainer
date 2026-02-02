@@ -5,69 +5,82 @@ import { kv } from '@vercel/kv';
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const code = searchParams.get('code');
+  const state = searchParams.get('state');
   const error = searchParams.get('error');
 
+  // Check for errors from FanVue
   if (error) {
-    console.error('FanVue OAuth error:', error);
-    return NextResponse.redirect(
-      `${process.env.NEXTAUTH_URL}?error=fanvue_oauth_error&message=${error}`
-    );
+    const errorDescription = searchParams.get('error_description') || 'Unknown error';
+    console.error('FanVue OAuth error:', error, errorDescription);
+    return new NextResponse(`OAuth Error: ${error} - ${errorDescription}`, { status: 400 });
   }
 
-  if (!code) {
-    console.error('No authorization code received');
-    return NextResponse.redirect(
-      `${process.env.NEXTAUTH_URL}?error=no_code`
-    );
+  if (!code || !state) {
+    return new NextResponse('Missing code or state parameter', { status: 400 });
   }
+
+  // Retrieve and validate state + code_verifier from KV
+  const storedData = await kv.get<{ codeVerifier: string }>(`oauth:${state}`);
+  
+  if (!storedData) {
+    return new NextResponse('Invalid or expired state parameter (CSRF check failed)', { status: 400 });
+  }
+
+  const { codeVerifier } = storedData;
+
+  // Clean up the stored state
+  await kv.del(`oauth:${state}`);
 
   try {
-    // Exchange code for access token
-    const tokenResponse = await fetch('https://api.fanvue.com/oauth/token', {
+    // Exchange authorization code for tokens using correct endpoint
+    const tokenResponse = await fetch('https://auth.fanvue.com/oauth2/token', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: JSON.stringify({
+      body: new URLSearchParams({
         grant_type: 'authorization_code',
-        client_id: process.env.FANVUE_CLIENT_ID,
-        client_secret: process.env.FANVUE_CLIENT_SECRET,
+        client_id: process.env.FANVUE_CLIENT_ID!,
+        client_secret: process.env.FANVUE_CLIENT_SECRET!,
         code: code,
         redirect_uri: `${process.env.NEXTAUTH_URL}/api/fanvue/callback`,
+        code_verifier: codeVerifier,
       }),
     });
 
-    const tokenData = await tokenResponse.json();
-    console.log('FanVue token response:', JSON.stringify(tokenData, null, 2));
-
     if (!tokenResponse.ok) {
-      console.error('Token exchange failed:', tokenData);
-      return NextResponse.redirect(
-        `${process.env.NEXTAUTH_URL}?error=token_exchange_failed`
-      );
+      const errorData = await tokenResponse.text();
+      console.error('Token exchange failed:', tokenResponse.status, errorData);
+      return new NextResponse(`Token exchange failed: ${errorData}`, { status: 500 });
     }
 
-    // Store the access token in KV store
-    const { access_token, refresh_token, expires_in } = tokenData;
+    const tokens = await tokenResponse.json();
     
-    await kv.set('fanvue:access_token', access_token);
-    if (refresh_token) {
-      await kv.set('fanvue:refresh_token', refresh_token);
-    }
-    if (expires_in) {
-      await kv.set('fanvue:token_expires', Date.now() + (expires_in * 1000));
+    console.log('FanVue OAuth successful! Token received.');
+    console.log('Token type:', tokens.token_type);
+    console.log('Expires in:', tokens.expires_in);
+    console.log('Scopes:', tokens.scope);
+
+    // Store tokens in KV
+    // access_token expires in ~1 hour, refresh_token is longer-lived
+    await kv.set('fanvue:access_token', tokens.access_token, { 
+      ex: tokens.expires_in || 3600 
+    });
+    
+    if (tokens.refresh_token) {
+      // Store refresh token for longer (30 days)
+      await kv.set('fanvue:refresh_token', tokens.refresh_token, { 
+        ex: 60 * 60 * 24 * 30 
+      });
     }
 
-    console.log('FanVue access token stored successfully!');
+    // Store token expiry time
+    await kv.set('fanvue:token_expires_at', Date.now() + (tokens.expires_in * 1000));
 
-    // Redirect to success page
-    return NextResponse.redirect(
-      `${process.env.NEXTAUTH_URL}?success=fanvue_connected`
-    );
+    // Redirect to a success page or the main app
+    return NextResponse.redirect(new URL('/api/fanvue/success', request.url));
   } catch (error) {
     console.error('OAuth callback error:', error);
-    return NextResponse.redirect(
-      `${process.env.NEXTAUTH_URL}?error=oauth_callback_error`
-    );
+    return new NextResponse(`OAuth callback error: ${error}`, { status: 500 });
   }
 }
