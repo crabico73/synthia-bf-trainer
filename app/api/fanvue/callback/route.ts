@@ -33,15 +33,19 @@ export async function GET(request: NextRequest) {
 
   try {
     // Exchange authorization code for tokens using correct endpoint
+    // FanVue requires client_secret_basic (credentials in Authorization header)
+    const credentials = Buffer.from(
+      `${process.env.FANVUE_CLIENT_ID}:${process.env.FANVUE_CLIENT_SECRET}`
+    ).toString('base64');
+
     const tokenResponse = await fetch('https://auth.fanvue.com/oauth2/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${credentials}`,
       },
       body: new URLSearchParams({
         grant_type: 'authorization_code',
-        client_id: process.env.FANVUE_CLIENT_ID!,
-        client_secret: process.env.FANVUE_CLIENT_SECRET!,
         code: code,
         redirect_uri: `${process.env.NEXTAUTH_URL}/api/fanvue/callback`,
         code_verifier: codeVerifier,
