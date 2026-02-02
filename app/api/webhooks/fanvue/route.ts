@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { SYNTHIA_SYSTEM_PROMPT } from '@/lib/synthia-prompt';
 
 const SIGNING_SECRET = process.env.FANVUE_WEBHOOK_SECRET!;
-const FANVUE_API_KEY = process.env.FANVUE_API_KEY;
+const FANVUE_API_KEY = process.env.FANVUE_CLIENT_SECRET; // Client secret doubles as API key
 const TOLERANCE_SECONDS = 300; // 5 minutes
 
 // Verify webhook signature from FanVue
@@ -85,7 +85,7 @@ async function generateSynthiaResponse(userMessage: string): Promise<string> {
 // Send reply via FanVue API
 async function sendFanVueReply(userUuid: string, message: string): Promise<boolean> {
   if (!FANVUE_API_KEY) {
-    console.error('FANVUE_API_KEY not configured');
+    console.error('FANVUE_CLIENT_SECRET not configured');
     return false;
   }
 
