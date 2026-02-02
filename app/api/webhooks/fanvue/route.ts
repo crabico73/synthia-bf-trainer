@@ -6,8 +6,14 @@ import { SYNTHIA_SYSTEM_PROMPT } from '@/lib/synthia-prompt';
 const SIGNING_SECRET = process.env.FANVUE_WEBHOOK_SECRET!;
 const TOLERANCE_SECONDS = 300; // 5 minutes
 
-// Get access token from KV store
+// Get access token from env var or KV store
 async function getAccessToken(): Promise<string | null> {
+  // First check environment variable (simplest)
+  if (process.env.FANVUE_ACCESS_TOKEN) {
+    return process.env.FANVUE_ACCESS_TOKEN;
+  }
+  
+  // Fallback to KV store
   try {
     const token = await kv.get<string>('fanvue:access_token');
     return token;
