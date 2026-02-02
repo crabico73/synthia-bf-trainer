@@ -1,10 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
+import { kv } from '@vercel/kv';
 import { SYNTHIA_SYSTEM_PROMPT } from '@/lib/synthia-prompt';
 
 const SIGNING_SECRET = process.env.FANVUE_WEBHOOK_SECRET!;
-const FANVUE_API_KEY = process.env.FANVUE_CLIENT_SECRET; // Client secret doubles as API key
 const TOLERANCE_SECONDS = 300; // 5 minutes
+
+// Get access token from KV store
+async function getAccessToken(): Promise<string | null> {
+  try {
+    const token = await kv.get<string>('fanvue:access_token');
+    return token;
+  } catch (error) {
+    console.error('Error getting access token from KV:', error);
+    return null;
+  }
+}
 
 // Verify webhook signature from FanVue
 function verifyWebhookSignature(payload: string, signatureHeader: string): boolean {
@@ -84,8 +95,10 @@ async function generateSynthiaResponse(userMessage: string): Promise<string> {
 
 // Send reply via FanVue API
 async function sendFanVueReply(userUuid: string, message: string): Promise<boolean> {
-  if (!FANVUE_API_KEY) {
-    console.error('FANVUE_CLIENT_SECRET not configured');
+  const accessToken = await getAccessToken();
+  
+  if (!accessToken) {
+    console.error('No FanVue access token found. Complete OAuth flow at /api/auth/fanvue/authorize');
     return false;
   }
 
@@ -96,7 +109,7 @@ async function sendFanVueReply(userUuid: string, message: string): Promise<boole
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${FANVUE_API_KEY}`,
+          'Authorization': `Bearer ${accessToken}`,
           'X-Fanvue-API-Version': '2025-06-26',
         },
         body: JSON.stringify({ text: message }),
