@@ -65,7 +65,7 @@ export const TIERS: Record<SubscriptionTier, TierConfig> = {
   builder: {
     name: 'Builder',
     tagline: 'Working on yourself',
-    price: 1999, // $19.99
+    price: 2499, // $24.99
     priceId: process.env.STRIPE_BUILDER_PRICE_ID,
     features: [
       'Unlimited messages',
@@ -87,14 +87,15 @@ export const TIERS: Record<SubscriptionTier, TierConfig> = {
   },
   sovereign: {
     name: 'Sovereign',
-    tagline: 'Mastery + Frameworks',
-    price: 2999, // $29.99
+    tagline: 'Your Virtual Girlfriend',
+    price: 9999, // $99.99
     priceId: process.env.STRIPE_SOVEREIGN_PRICE_ID,
     features: [
       'Everything in Builder',
-      '1:1 Synthia guided sessions',
-      'Structural Cosmology frameworks',
-      'Early access to new features',
+      'Daily good morning texts',
+      'Intimate conversation mode',
+      'Personal photos & voice notes',
+      'Priority 24/7 availability',
       'Private Discord community',
     ],
     limits: {
