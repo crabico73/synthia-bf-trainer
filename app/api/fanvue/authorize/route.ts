@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 // FanVue OAuth Authorization - Step 1: Redirect to FanVue
 export async function GET() {
   const clientId = process.env.FANVUE_CLIENT_ID;
-  const redirectUri = `${process.env.NEXTAUTH_URL}/api/auth/fanvue/callback`;
+  const redirectUri = `${process.env.NEXTAUTH_URL}/api/fanvue/callback`;
   
   // All the scopes we need
   const scopes = [

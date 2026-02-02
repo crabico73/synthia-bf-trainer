@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
         client_id: process.env.FANVUE_CLIENT_ID,
         client_secret: process.env.FANVUE_CLIENT_SECRET,
         code: code,
-        redirect_uri: `${process.env.NEXTAUTH_URL}/api/auth/fanvue/callback`,
+        redirect_uri: `${process.env.NEXTAUTH_URL}/api/fanvue/callback`,
       }),
     });
 
