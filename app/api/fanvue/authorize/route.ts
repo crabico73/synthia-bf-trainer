@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { kv } from '@vercel/kv';
 import crypto from 'crypto';
 
 // Helper function for Base64URL encoding
@@ -34,9 +33,6 @@ export async function GET() {
   
   // Generate state for CSRF protection
   const state = crypto.randomBytes(32).toString('hex');
-  
-  // Store code_verifier and state in KV (expires in 10 minutes)
-  await kv.set(`oauth:${state}`, { codeVerifier }, { ex: 600 });
 
   // All the scopes we need (including required ones)
   const scopes = [
@@ -62,5 +58,25 @@ export async function GET() {
 
   console.log('Redirecting to FanVue OAuth:', authUrl.toString());
   
-  return NextResponse.redirect(authUrl.toString());
+  // Create response with redirect
+  const response = NextResponse.redirect(authUrl.toString());
+  
+  // Store PKCE values in secure HTTP-only cookies (expire in 10 minutes)
+  response.cookies.set('fanvue_code_verifier', codeVerifier, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'lax',
+    maxAge: 600, // 10 minutes
+    path: '/',
+  });
+  
+  response.cookies.set('fanvue_oauth_state', state, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'lax',
+    maxAge: 600, // 10 minutes
+    path: '/',
+  });
+  
+  return response;
 }

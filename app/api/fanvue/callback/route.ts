@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { kv } from '@vercel/kv';
 
 // FanVue OAuth Callback - Step 2: Exchange code for access token
 export async function GET(request: NextRequest) {
@@ -19,17 +18,18 @@ export async function GET(request: NextRequest) {
     return new NextResponse('Missing code or state parameter', { status: 400 });
   }
 
-  // Retrieve and validate state + code_verifier from KV
-  const storedData = await kv.get<{ codeVerifier: string }>(`oauth:${state}`);
-  
-  if (!storedData) {
-    return new NextResponse('Invalid or expired state parameter (CSRF check failed)', { status: 400 });
+  // Get PKCE values from cookies
+  const storedState = request.cookies.get('fanvue_oauth_state')?.value;
+  const codeVerifier = request.cookies.get('fanvue_code_verifier')?.value;
+
+  // Validate state
+  if (!storedState || storedState !== state) {
+    return new NextResponse('Invalid state parameter (CSRF check failed)', { status: 400 });
   }
 
-  const { codeVerifier } = storedData;
-
-  // Clean up the stored state
-  await kv.del(`oauth:${state}`);
+  if (!codeVerifier) {
+    return new NextResponse('Missing code verifier (session expired?)', { status: 400 });
+  }
 
   try {
     // Exchange authorization code for tokens using correct endpoint
@@ -61,24 +61,45 @@ export async function GET(request: NextRequest) {
     console.log('Expires in:', tokens.expires_in);
     console.log('Scopes:', tokens.scope);
 
-    // Store tokens in KV
-    // access_token expires in ~1 hour, refresh_token is longer-lived
-    await kv.set('fanvue:access_token', tokens.access_token, { 
-      ex: tokens.expires_in || 3600 
+    // Create success response
+    const successUrl = new URL('/api/fanvue/success', request.url);
+    const response = NextResponse.redirect(successUrl);
+
+    // Clear the PKCE cookies
+    response.cookies.delete('fanvue_code_verifier');
+    response.cookies.delete('fanvue_oauth_state');
+
+    // Store tokens in secure cookies
+    // Access token - shorter lived
+    response.cookies.set('fanvue_access_token', tokens.access_token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      maxAge: tokens.expires_in || 3600,
+      path: '/',
     });
-    
+
+    // Refresh token - longer lived (30 days)
     if (tokens.refresh_token) {
-      // Store refresh token for longer (30 days)
-      await kv.set('fanvue:refresh_token', tokens.refresh_token, { 
-        ex: 60 * 60 * 24 * 30 
+      response.cookies.set('fanvue_refresh_token', tokens.refresh_token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 30,
+        path: '/',
       });
     }
 
-    // Store token expiry time
-    await kv.set('fanvue:token_expires_at', Date.now() + (tokens.expires_in * 1000));
+    // Also store in environment variable file for the webhook to use
+    // For now, log the token so we can manually add it
+    console.log('=== FANVUE ACCESS TOKEN (add to env vars) ===');
+    console.log('FANVUE_ACCESS_TOKEN=' + tokens.access_token);
+    if (tokens.refresh_token) {
+      console.log('FANVUE_REFRESH_TOKEN=' + tokens.refresh_token);
+    }
+    console.log('==============================================');
 
-    // Redirect to a success page or the main app
-    return NextResponse.redirect(new URL('/api/fanvue/success', request.url));
+    return response;
   } catch (error) {
     console.error('OAuth callback error:', error);
     return new NextResponse(`OAuth callback error: ${error}`, { status: 500 });
