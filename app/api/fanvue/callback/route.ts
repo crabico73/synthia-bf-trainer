@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { kv } from '@vercel/kv';
 
 // FanVue OAuth Callback - Step 2: Exchange code for access token
 export async function GET(request: NextRequest) {
@@ -94,14 +95,26 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Also store in environment variable file for the webhook to use
-    // For now, log the token so we can manually add it
-    console.log('=== FANVUE ACCESS TOKEN (add to env vars) ===');
-    console.log('FANVUE_ACCESS_TOKEN=' + tokens.access_token);
-    if (tokens.refresh_token) {
-      console.log('FANVUE_REFRESH_TOKEN=' + tokens.refresh_token);
+    // Store tokens in Vercel KV for the webhook to use
+    try {
+      await kv.set('fanvue:access_token', tokens.access_token, {
+        ex: tokens.expires_in || 3600 // expire when token expires
+      });
+      if (tokens.refresh_token) {
+        await kv.set('fanvue:refresh_token', tokens.refresh_token, {
+          ex: 60 * 60 * 24 * 30 // 30 days
+        });
+      }
+      console.log('✅ FanVue tokens stored in KV successfully!');
+    } catch (kvError) {
+      console.error('Failed to store tokens in KV:', kvError);
+      // Continue anyway - tokens are also in cookies
     }
-    console.log('==============================================');
+
+    // Also log for backup/debugging
+    console.log('=== FANVUE ACCESS TOKEN (backup) ===');
+    console.log('FANVUE_ACCESS_TOKEN=' + tokens.access_token);
+    console.log('=====================================');
 
     return response;
   } catch (error) {
