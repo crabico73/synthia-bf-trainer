@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/fanvue/refresh",
+      "schedule": "*/45 * * * *"
+    },
+    {
+      "path": "/api/content/process",
+      "schedule": "0 */4 * * *"
+    }
+  ]
+}
