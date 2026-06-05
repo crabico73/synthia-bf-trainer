@@ -67,7 +67,7 @@ function SynthiaChatContent() {
   // Redirect if not logged in
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push('/');
+      router.push('/signin?callbackUrl=/chat');
     }
   }, [status, router]);
 

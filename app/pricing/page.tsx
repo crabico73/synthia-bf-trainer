@@ -101,7 +101,7 @@ function PricingPageContent() {
 
   const handleSubscribe = async (tierId: string) => {
     if (!session) {
-      router.push('/api/auth/signin');
+      router.push('/signin?callbackUrl=/pricing');
       return;
     }
 
