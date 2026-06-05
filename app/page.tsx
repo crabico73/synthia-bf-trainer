@@ -50,6 +50,215 @@ const STEPS = [
   { n: "03", t: "Get the truth", d: "Short, sharp, screenshot-worthy. Plus a reflection and a next step." },
 ];
 
+const SUGGESTIONS = [
+  "I keep attracting people who want situationships",
+  "How do I stop people-pleasing?",
+  "I feel stuck in my career",
+  "How do I know if someone is emotionally available?",
+  "Why do I feel empty even when things are going well?",
+];
+
+const MAX_TRIES = 5;
+const STORAGE_KEY = "synthia_demo_tries";
+
+function TryWidget({ onSignIn }: { onSignIn: () => void }) {
+  const [triesLeft, setTriesLeft] = useState<number | null>(null);
+  const [input, setInput] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [response, setResponse] = useState<string | null>(null);
+  const [animKey, setAnimKey] = useState(0);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  // Read remaining count from localStorage on mount
+    useEffect(() => {
+        try {
+            const stored = window.localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                const n = parseInt(stored, 10);
+                if (!Number.isNaN(n) && n >= 0) setTriesLeft(n);
+            }
+        } catch {
+            // localStorage may be disabled
+        }
+    }, []);
+
+    const persist = (n: number) => {
+        try { window.localStorage.setItem(STORAGE_KEY, String(n)); } catch {}
+        setTriesLeft(n);
+    };
+
+    const handleSubmit = async (msg?: string) => {
+        const text = (msg ?? input).trim();
+        if (!text || busy) return;
+        if (triesLeft !== null && triesLeft <= 0) {
+            setError("You've used your free samples. Sign in to keep talking.");
+            return;
+        }
+
+        setBusy(true);
+        setError(null);
+        setResponse(null);
+        const wasEmpty = !input && msg;
+        if (wasEmpty) setInput(text);
+
+        try {
+            const r = await fetch("/api/sample-insight", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: text }),
+            });
+            const data = await r.json();
+
+            if (r.status === 429) {
+                persist(0);
+                setError(
+                    data.error ||
+                        "You've used your free samples. Sign in to keep talking."
+                );
+                return;
+            }
+            if (!r.ok || data.error) {
+                setError(data.error || "Something went wrong. Try again?");
+                return;
+            }
+
+            setResponse(data.text);
+            setAnimKey((k) => k + 1);
+            setInput("");
+            if (typeof data.remaining === "number") persist(data.remaining);
+            inputRef.current?.focus();
+        } catch (e) {
+            setError("Network error. Try again?");
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    const exhausted = triesLeft !== null && triesLeft <= 0;
+    const initial = triesLeft === null;
+
+    return (
+        <div className="glow-card p-6 md:p-8">
+            <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--gold)] to-[var(--magenta)] flex items-center justify-center text-[var(--background)] font-bold">
+                        S
+                    </div>
+                    <div>
+                        <div className="font-semibold text-sm">Synthia</div>
+                        <div className="text-xs text-[var(--text-muted)] flex items-center gap-1.5">
+                            <span className="pulse-dot" style={{ width: 5, height: 5 }} /> Online · ready when you are
+                        </div>
+                    </div>
+                </div>
+                <div className="text-xs text-[var(--text-muted)]">
+                    {initial ? (
+                        <span>Try her out · no sign-up</span>
+                    ) : exhausted ? (
+                        <span className="text-[var(--gold)]">Free samples used</span>
+                    ) : (
+                        <span>
+                            {triesLeft} of {MAX_TRIES} free {triesLeft === 1 ? "sample" : "samples"} left
+                        </span>
+                    )}
+                </div>
+            </div>
+
+            {/* Response area */}
+            {response ? (
+                <div
+                    key={animKey}
+                    className="bubble-synthia mb-5"
+                    style={{ animation: "result-in 0.5s ease-out both", maxWidth: "100%" }}
+                >
+                    {response}
+                </div>
+            ) : !busy ? (
+                <div className="text-center text-[var(--text-muted)] py-10 italic">
+                    Ask her anything. Try a suggestion below.
+                </div>
+            ) : null}
+
+            {busy && (
+                <div className="bubble-synthia mb-5 flex items-center gap-2" style={{ maxWidth: "100%" }}>
+                    <span className="inline-block w-2 h-2 bg-[var(--gold)] rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <span className="inline-block w-2 h-2 bg-[var(--gold)] rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <span className="inline-block w-2 h-2 bg-[var(--gold)] rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                    <span className="text-sm text-[var(--text-secondary)] ml-2">Synthia is thinking...</span>
+                </div>
+            )}
+
+            {error && (
+                <div className="mb-4 p-3 rounded-lg bg-[rgba(239,68,68,0.10)] border border-[rgba(239,68,68,0.30)] text-sm text-red-300">
+                    {error}
+                </div>
+            )}
+
+            {/* Input */}
+            <form
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    handleSubmit();
+                }}
+                className="flex flex-col gap-3"
+            >
+                <div className="flex gap-2">
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        maxLength={280}
+                        disabled={busy || exhausted}
+                        placeholder={exhausted ? "Sign in to keep going" : "What's on your mind?"}
+                        className="flex-1 bg-[rgba(255,255,255,0.04)] border border-[var(--border-strong)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--gold)] focus:bg-[rgba(240,198,108,0.04)] transition-colors disabled:opacity-50"
+                    />
+                    <button
+                        type="submit"
+                        disabled={busy || exhausted || !input.trim()}
+                        className="btn-cosmic btn-primary-cosmic disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none"
+                    >
+                        {busy ? "..." : "Send"}
+                    </button>
+                </div>
+
+                {/* Suggestion chips */}
+                {!response && !exhausted && (
+                    <div className="flex flex-wrap gap-2">
+                        {SUGGESTIONS.map((s) => (
+                            <button
+                                key={s}
+                                type="button"
+                                onClick={() => handleSubmit(s)}
+                                disabled={busy}
+                                className="text-xs px-3 py-1.5 rounded-full bg-[rgba(255,255,255,0.04)] border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--gold)] hover:text-[var(--gold)] transition-colors disabled:opacity-50"
+                            >
+                                {s}
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </form>
+
+            {/* Post-response or post-exhaustion CTA */}
+            {(response || exhausted) && (
+                <div className="mt-6 pt-5 border-t border-[var(--border)] flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-sm text-[var(--text-secondary)]">
+                        {response
+                            ? "Like that? Sign in to unlock 5 daily messages, voice mode, and the full chat."
+                            : "Sign in to unlock 5 daily messages, voice mode, and the full chat."}
+                    </p>
+                    <button onClick={onSignIn} className="btn-cosmic btn-primary-cosmic text-sm">
+                        {response ? "Keep talking" : "Sign in"}
+                        <span>→</span>
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function HomePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -258,8 +467,26 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── Try Synthia (no signup) ── */}
+      <section id="try" ref={setRevealRef(2)} className="section-pad reveal">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-10">
+            <div className="text-[var(--gold)] text-[11px] font-bold tracking-[0.25em] mb-3">NO SIGN-UP NEEDED</div>
+            <h2 className="font-[family-name:var(--font-playfair)] font-black text-4xl md:text-5xl tracking-tight">
+              Try her. <span className="gradient-text">Right now.</span>
+            </h2>
+            <p className="text-[var(--text-secondary)] mt-4 max-w-xl mx-auto">
+              Five free samples. Real Synthia. No card, no account, no email.
+              When you&apos;re ready for the full conversation, sign in.
+            </p>
+          </div>
+
+          <TryWidget onSignIn={handleSignIn} />
+        </div>
+      </section>
+
       {/* ── How it works ── */}
-      <section id="how" ref={setRevealRef(2)} className="section-pad reveal">
+      <section id="how" ref={setRevealRef(3)} className="section-pad reveal">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <div className="text-[var(--gold)] text-[11px] font-bold tracking-[0.25em] mb-3">HOW IT WORKS</div>
@@ -282,7 +509,7 @@ export default function HomePage() {
       </section>
 
       {/* ── Final CTA ── */}
-      <section ref={setRevealRef(3)} className="section-pad reveal">
+      <section ref={setRevealRef(4)} className="section-pad reveal">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="font-[family-name:var(--font-playfair)] font-black text-4xl md:text-6xl tracking-tight mb-5">
             Stop scrolling. <span className="gradient-text">Start getting the truth.</span>
