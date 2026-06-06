@@ -43,7 +43,7 @@ export const TIERS: Record<SubscriptionTier, TierConfig> = {
   participant: {
     name: 'Participant',
     tagline: 'Getting involved',
-    price: 999, // $9.99
+    price: 1299, // $12.99
     priceId: process.env.STRIPE_PARTICIPANT_PRICE_ID,
     features: [
       '100 messages per day',
@@ -55,7 +55,7 @@ export const TIERS: Record<SubscriptionTier, TierConfig> = {
     limits: {
       messagesPerDay: 100,
       voiceEnabled: true,
-      voiceMinutesPerMonth: 30,
+      voiceMinutesPerMonth: 15,
       selfiesPerDay: 3,
       coachingMode: false,
       exclusiveContent: false,
@@ -65,7 +65,7 @@ export const TIERS: Record<SubscriptionTier, TierConfig> = {
   builder: {
     name: 'Builder',
     tagline: 'Working on yourself',
-    price: 2499, // $24.99
+    price: 3499, // $34.99
     priceId: process.env.STRIPE_BUILDER_PRICE_ID,
     features: [
       'Unlimited messages',
@@ -78,7 +78,7 @@ export const TIERS: Record<SubscriptionTier, TierConfig> = {
     limits: {
       messagesPerDay: -1, // unlimited
       voiceEnabled: true,
-      voiceMinutesPerMonth: 120,
+      voiceMinutesPerMonth: 60,
       selfiesPerDay: -1, // unlimited
       coachingMode: true,
       exclusiveContent: true,
@@ -88,7 +88,7 @@ export const TIERS: Record<SubscriptionTier, TierConfig> = {
   sovereign: {
     name: 'Sovereign',
     tagline: 'Your Virtual Girlfriend',
-    price: 9999, // $99.99
+    price: 14999, // $149.99
     priceId: process.env.STRIPE_SOVEREIGN_PRICE_ID,
     features: [
       'Everything in Builder',
@@ -101,7 +101,7 @@ export const TIERS: Record<SubscriptionTier, TierConfig> = {
     limits: {
       messagesPerDay: -1,
       voiceEnabled: true,
-      voiceMinutesPerMonth: -1, // unlimited
+      voiceMinutesPerMonth: 200,
       selfiesPerDay: -1,
       coachingMode: true,
       exclusiveContent: true,
